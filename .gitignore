@@ -1,0 +1,6 @@
+__pycache__/
+.ipynb_checkpoints/
+*.pyc
+.DS_Store
+data/qm9.csv
+data/qm9_clean.csv

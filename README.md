@@ -44,57 +44,44 @@ experimental ~6.0 eV — consistent with known B3LYP overestimation of ~13%).
 ---
 
 ## Project Pipeline
+
+```
 QM9 Dataset (133,885 molecules)
-↓
+         ↓
+1. Exploratory Data Analysis
+   - Band gap distribution
+   - Unit validation (Hartree → eV)
+         ↓
+2. Chemical Space Visualisation
+   - Morgan fingerprints → PCA (2048→50) → t-SNE (50→2)
+   - Structural classification (7 families)
+   - Band gap distribution per class
+         ↓
+3. Chemically Motivated Filtering
+   - Element check (C,H,O,N,F only): 0 removed
+   - Valence sanity check: 0 removed
+   - Complexity filter (≥3 heavy atoms): 8 removed
+   - PAINS filter: NOT applied (drug-discovery specific,
+     irrelevant for materials science — justified by investigation)
+   Final dataset: 133,877 molecules (99.99% retention)
+         ↓
+4. Feature Engineering (69 features → 31 selected)
+   - 15 RDKit molecular descriptors
+   - 50 Morgan fingerprint PCA components
+   - 4 QM9 quantum features (mu, alpha, r2, cv)
+   - Feature selection: |r| ≥ 0.05 + chemical redundancy removal
+         ↓
+5. Model Training (5-Fold Cross Validation)
+   - Ridge Regression (linear baseline)
+   - Random Forest
+   - XGBoost
+   - SVR (excluded — O(n²), infeasible on 133k molecules)
+         ↓
+6. Evaluation and Interpretation
+   - Benchmark comparison with published literature
+   - Feature importance analysis
+```
 
-Exploratory Data Analysis
-
-Band gap distribution
-Unit validation (Hartree → eV)
-↓
-
-
-Chemical Space Visualisation
-
-Morgan fingerprints → PCA (2048→50) → t-SNE (50→2)
-Structural classification (7 families)
-Band gap distribution per class
-↓
-
-
-Chemically Motivated Filtering
-
-Element check (C,H,O,N,F only): 0 removed
-Valence sanity check: 0 removed
-Complexity filter (≥3 heavy atoms): 8 removed
-PAINS filter: NOT applied (drug-discovery specific,
-irrelevant for materials science — justified by investigation)
-Final dataset: 133,877 molecules (99.99% retention)
-↓
-
-
-Feature Engineering (69 features → 31 selected)
-
-15 RDKit molecular descriptors
-50 Morgan fingerprint PCA components
-4 QM9 quantum features (mu, alpha, r2, cv)
-Feature selection: |r| ≥ 0.05 + chemical redundancy removal
-↓
-
-
-Model Training (5-Fold Cross Validation)
-
-Ridge Regression (linear baseline)
-Random Forest
-XGBoost
-SVR (excluded — O(n²), infeasible on 133k molecules)
-↓
-
-
-Evaluation and Interpretation
-
-Benchmark comparison with published literature
-Feature importance analysis
 ---
 
 ## Key Findings
@@ -131,8 +118,8 @@ enone-ynes, and cyano-containing molecules. After investigation:
   Applying it to materials science has no scientific justification.
 
 **Only 8 trivially simple molecules removed** (CH4, NH3, H2O, C2H2,
-CHN, CH2O, C2H6, CH4O) — molecules with <3 heavy atoms with no
-semiconductor application.
+CHN, CH2O, C2H6, CH4O) — molecules with fewer than 3 heavy atoms,
+with no semiconductor application.
 
 ### Feature Importance
 
@@ -156,7 +143,7 @@ fundamental principle of molecular electronics from data alone.
 | SVR | N/A | N/A | N/A | N/A | N/A |
 
 **SVR excluded:** O(n²) computational complexity — infeasible on
-133,877 molecules. Suitable for datasets <10,000 samples.
+133,877 molecules. Suitable for datasets smaller than 10,000 samples.
 
 **Best model: Random Forest**
 - Test R² = 0.921 — explains 92.1% of band gap variance
@@ -185,9 +172,7 @@ but cannot fully capture.
 
 | Notebook | Content |
 |---|---|
-| `01_eda_chemical_space.ipynb` | EDA, unit validation, t-SNE/PCA visualisation, structural classification |
-| `02_filtering_features.ipynb` | Chemical filters, feature engineering, feature selection |
-| `03_ml_models_2d.ipynb` | Model training (5-fold CV), evaluation, feature importance, benchmark comparison |
+| `bandgap_prediction.ipynb` | Full pipeline: EDA, unit validation, chemical space visualisation, structural classification, filtering, feature engineering, feature selection, model training with 5-fold CV, evaluation, feature importance, benchmark comparison |
 
 ---
 
@@ -214,10 +199,10 @@ This project is actively being developed. Planned improvements:
 | Phase | Method | Expected MAE | Status |
 |---|---|---|---|
 | ✅ Current | 15 RDKit + Morgan PCA + 4 quantum | 0.258 eV | Done |
-| 🔄 Phase 2 | Mordred full descriptors (1,344) | ~0.18-0.22 eV | Planned |
-| 🔄 Phase 3 | Class-specific models per structural family | ~0.10-0.15 eV | Planned |
-| 🔄 Phase 4 | 3D conformer descriptors (RDKit ETKDG) | ~0.10-0.13 eV | Planned |
-| 🔄 Phase 5 | 2D Graph Neural Network (GCN/GIN) | ~0.05-0.10 eV | Planned |
+| 🔄 Phase 2 | Mordred full descriptors (1,344) | ~0.18–0.22 eV | Planned |
+| 🔄 Phase 3 | Class-specific models per structural family | ~0.10–0.15 eV | Planned |
+| 🔄 Phase 4 | 3D conformer descriptors (RDKit ETKDG) | ~0.10–0.13 eV | Planned |
+| 🔄 Phase 5 | 2D Graph Neural Network (GCN/GIN) | ~0.05–0.10 eV | Planned |
 | 🔄 Phase 6 | SchNet 3D GNN (3D coordinates) | ~0.076 eV | Planned |
 
 ---
@@ -225,12 +210,14 @@ This project is actively being developed. Planned improvements:
 ## How to Run
 
 **1. Clone the repo**
+
 ```bash
-git clone https://github.com/yourusername/02-materials-bandgap-prediction.git
+git clone https://github.com/debu-git/02-materials-bandgap-prediction.git
 cd 02-materials-bandgap-prediction
 ```
 
 **2. Set up environment**
+
 ```bash
 conda env create -f environment.yml
 conda activate ml_practice
@@ -238,13 +225,17 @@ conda activate ml_practice
 
 **3. Download QM9 dataset**
 
-Run Cell 2 in any notebook — downloads automatically from AWS S3.
+Run Cell 2 in the notebook — downloads automatically from AWS S3.
 
-**4. Run notebooks in order**
+**4. Run the notebook**
 
-Open Jupyter and run notebooks 01 → 02 → 03 in sequence.
-Each notebook saves intermediate files to `data/` so subsequent
-notebooks can reload without recomputation.
+```bash
+jupyter notebook --no-browser --port=8888
+```
+
+Open `bandgap_prediction.ipynb` and run cells in order.
+Each section saves intermediate files to `data/` so you can
+reload without recomputation after a kernel restart.
 
 ---
 
@@ -252,21 +243,48 @@ notebooks can reload without recomputation.
 
 | Decision | Reasoning |
 |---|---|
-| PAINS filter rejected | Designed for drug discovery — irrelevant for materials |
-| Cyano groups kept | 12.4% of dataset, used in real semiconductors |
+| PAINS filter rejected | Designed for drug discovery — irrelevant for materials science |
+| Cyano groups kept | 12.4% of dataset, used in real semiconductors (TCNQ, PC61BM) |
 | num_rings removed | Merged aromatic + aliphatic effects — chemically misleading |
 | num_bonds removed | Size proxy redundant with mol_weight |
-| SVR excluded | O(n²) — computationally infeasible at this scale |
+| SVR excluded | O(n²) complexity — computationally infeasible at this scale |
 | Hartree → eV conversion | Verified against benzene experimental reference |
 
 ---
 
+## Project Structure
+
+```
+02-materials-bandgap-prediction/
+├── data/
+│   ├── X_final.csv          ← final feature matrix (31 features)
+│   └── y_final.csv          ← target variable (gap_eV)
+├── images/
+│   ├── chemical_space_tsne.png
+│   ├── structural_class_analysis.png
+│   ├── cyano_analysis.png
+│   ├── filter_cascade.png
+│   ├── feature_correlations.png
+│   ├── feature_importance_rf.png
+│   └── model_evaluation.png
+├── bandgap_prediction.ipynb ← main notebook
+├── environment.yml          ← full conda environment
+├── requirements.txt         ← minimal dependencies
+└── README.md
+```
+
+---
+
 ## Environment
+
+```
 Python 3.11
 RDKit 2024
 scikit-learn 1.3
 XGBoost 2.0
 pandas, numpy, matplotlib, seaborn, tqdm
+```
+
 ---
 
 ## References
